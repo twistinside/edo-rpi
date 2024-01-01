@@ -14,11 +14,11 @@ for dir in "${directories[@]}"; do
 
   filename=$(curl -s $fullurl | grep torrent | awk -F '>' '{print $6}' | cut -d "\"" -f 2)
 
-  uri=$fullurl$filename
+  url=$fullurl$filename
 
-  echo "[$(date)] Adding torrent at ${uri} to Transmission." >> $logpath/rpi.log
+  echo "[$(date)] Adding torrent at ${url} to Transmission." >> $logpath/rpi.log
 
-  response=$(transmission-remote --auth 'transmission:transmission' -a "$uri")
+  response=$(transmission-remote -a "$url")
 
   echo "[$(date)] $response." >> /home/edo/rpi/rpi.log
 
