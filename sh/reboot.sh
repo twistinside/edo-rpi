@@ -1,34 +1,28 @@
 #!/bin/bash
 
-# Load Mastodon config
-source ~/.mastodon/config
+# Load Pushover config
+source ~/.pushover/config
 
-# API URL (from config file)
-api_url="$MASTODON_URL/api/v1/statuses"
+# API URL for Pushover
+api_url="https://api.pushover.net/1/messages.json"
 
-# Access token (from config file)
-access_token="$ACCESS_TOKEN"
+# Application key and user key (from config file)
+app_token="$EDO_ACCESS_TOKEN"
+user_key="$USER_KEY"
 
-# Get the current time as the reboot time in seconds since epoch
-reboot_sec=$(date '+%s')
+# Get uptime and convert it to hours and minutes
+uptime=$($HOME/sh/uptime.sh)
 
-# Get the last shutdown time
-last_shutdown=$(last -x | grep shutdown | head -1 | awk '{ print $5 " " $6 " " $7 " " $8 }')
+# Message to send
+message="I've been up for $uptime, so I'm going to take a quick rest... See you soon!"
 
-# Convert times to seconds since epoch
-shutdown_sec=$(date -d "$last_shutdown" '+%s')
+# Post to Pushover using curl and log the output
+curl -s -X POST \
+    --form-string "token=$app_token" \
+    --form-string "user=$user_key" \
+    --form-string "message=$message" \
+    --form-string "subject=Reboot" \
+    $api_url
 
-# Calculate downtime in seconds
-downtime=$((reboot_sec - shutdown_sec))
-
-# Message to post
-message="I just woke up from a reboot.%0AI was asleep for $downtime seconds... What did I miss?"
-
-# Log file location within the private Mastodon folder
-log_file="$HOME/.mastodon/api.log"
-
-# Post to Mastodon using curl and log the output
-curl -X POST -H "Authorization: Bearer $access_token" -d "status=$message" $api_url >> $log_file 2>&1
-
-# Add timestamp to the log
-echo " - Posted on: $(date)" >> $log_file
+# Reboot the system
+sudo reboot
