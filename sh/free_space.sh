@@ -1,40 +1,39 @@
 #!/bin/bash
 
-# Read Mastodon configuration from the config file
-source ~/.mastodon/config
+# Load Pushover config
+source "$HOME/.pushover/config"
 
-# API URL (from config file)
-api_url="${MASTODON_URL}/api/v1/statuses"
+# API URL for Pushover
+pushover_api_url="https://api.pushover.net/1/messages.json"
 
-# Access token (from config file)
-access_token="${ACCESS_TOKEN}"
+# Application key and user key
+app_token="$EDO_ACCESS_TOKEN"
+user_key="$USER_KEY"
 
-# Function to get disk usage stats
+# Function to get disk stats
 get_disk_stats() {
     local mount_point="$1"
-    local usage_stats=$(df -h "$mount_point" | awk 'NR==2{print $5 " " $4}')
-    
-    echo "$usage_stats"
+    df -h "$mount_point" | awk 'NR==2 { gsub("%", "", $5); print $5, $4 }'
 }
 
-# Get stats for both drives
-sd_stats=$(get_disk_stats "/")
-ssd_stats=$(get_disk_stats "/mnt/ssd")
+# Get stats for root and SSD
+read sd_percent_used sd_free_space <<< "$(get_disk_stats "/")"
+read ssd_percent_used ssd_free_space <<< "$(get_disk_stats "/mnt/ssd")"
 
-sd_percent_used=$(echo "${sd_stats%% *}" | tr -d '%')
-ssd_percent_used=$(echo "${ssd_stats%% *}" | tr -d '%')
+# Compose message
+# Use real newlines for formatting
+message="Storage check complete.
+SD card: ${sd_percent_used}% full, ${sd_free_space} free.
+HDD: ${ssd_percent_used}% full, ${ssd_free_space} free."
 
-sd_free_space=${sd_stats##* }
-ssd_free_space=${ssd_stats##* }
+# Send to Pushover
+curl -s -X POST "$pushover_api_url" \
+    --form-string "token=$app_token" \
+    --form-string "user=$user_key" \
+    --form-string "message=$message" \
+    --form-string "title=Disk Status Update" \
+    >> "$HOME/.pushover/api.log"
 
-# Format the message
-message="I checked the status of my storage.%0AMy micro SD card is ${sd_percent_used}%25 full, and my external SSD is ${ssd_percent_used}%25 full.%0AThat leaves my disks with ${sd_free_space} and ${ssd_free_space} free."
+# Log the timestamp
+echo " - Pushover alert sent on: $(date)" >> "$HOME/.pushover/api.log"
 
-# Log file location within the private Mastodon folder
-log_file="$HOME/.mastodon/api.log"
-
-# Post to Mastodon and log
-curl -X POST -H "Authorization: Bearer $access_token" -d "status=$message" "$api_url" >> "$log_file" 2>&1
-
-# Add timestamp to the log
-echo " - Posted on: $(date)" >> "$log_file"
