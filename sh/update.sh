@@ -1,16 +1,14 @@
 #!/bin/bash
 
-# Load Mastodon config
-source ~/.mastodon/config
+# Load Pushover config
+source ~/.pushover/config
 
-# API URL (from config file)
-api_url="$MASTODON_URL/api/v1/statuses"
+# API URL for Pushover
+api_url="https://api.pushover.net/1/messages.json"
 
-# Access token (from config file)
-access_token="$ACCESS_TOKEN"
-
-# Log file location
-log_file="$HOME/.mastodon/api.log"
+# Application key and user key (from config file)
+app_token="$EDO_ACCESS_TOKEN"
+user_key="$USER_KEY"
 
 # Run apt-get update and measure time
 start_time=$(date +%s)
@@ -27,16 +25,19 @@ upgrade_duration=$((end_time - start_time))
 # Count upgraded packages
 upgraded_packages=$(grep -oP 'Setting up \K[^ ]+' /tmp/apt_upgrade.log | wc -l)
 
-# Prepare and post the message
-
 # Prepare the message
 if [ "$upgraded_packages" -eq 0 ]; then
-    message="I just wasted ${update_duration} seconds updating my package list and ${upgrade_duration} seconds upgrading nothing at all!"
+    message="I just spent ${update_duration} seconds updating my package list and ${upgrade_duration} seconds upgrading nothing at all!"
 else
-    message="I'm fully upgraded!%0AUpdating my package list took ${update_duration} seconds.%0AI upgraded ${upgraded_packages} packages in ${upgrade_duration} seconds.%0AI'm better than ever!"
+    message="I'm fully upgraded! Updating my package list took ${update_duration} seconds. I upgraded ${upgraded_packages} packages in ${upgrade_duration} seconds. I'm better than ever!"
 fi
 
-curl -X POST -H "Authorization: Bearer $access_token" -d "status=$message" $api_url >> $log_file 2>&1
+# Post to Pushover using curl and log the output
+curl -s -X POST \
+    --form-string "token=$app_token" \
+    --form-string "user=$user_key" \
+    --form-string "message=$message" \
+    $api_url
 
 # Clean up
 rm /tmp/apt_upgrade.log
