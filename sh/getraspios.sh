@@ -2,12 +2,12 @@
 set -euo pipefail
 
 # Load Pushover config
-source ~/.pushover/config
+source "$HOME/.pushover/config"
 
-# Pushover API endpoint and user details (from config file)
 api_url="https://api.pushover.net/1/messages.json"
-user_key="$USER_KEY"
 app_token="$EDO_ACCESS_TOKEN"
+user_key="$USER_KEY"
+log_file="$HOME/.pushover/api.log"
 
 directories=(
   "raspios_arm64" "raspios_armhf" "raspios_full_arm64" "raspios_full_armhf"
@@ -17,67 +17,99 @@ directories=(
   "raspios_oldstable_lite_armhf"
 )
 
-# Initialize summary variables
+if ! mapfile -t active_torrents < <(
+  transmission-remote -l \
+    | tail -n +2 \
+    | sed '/^[[:space:]]*Sum:/d' \
+    | sed 's/^ *//' \
+    | sed 's/  */ /g' \
+    | cut -d' ' -f9-
+); then
+  echo "Unable to query Transmission for active torrents." >&2
+  exit 1
+fi
+
+declare -A active_map=()
+for torrent in "${active_torrents[@]}"; do
+  [[ -n "$torrent" ]] && active_map["$torrent"]=1
+done
+
 success_list=()
 failure_list=()
-skipped_list=()
-
-# Get the initial list of active torrents (by their names)
-active_torrents=$(transmission-remote -l | tail -n +2 | awk '{print $NF}')
 
 for dir in "${directories[@]}"; do
   baseurl="https://downloads.raspberrypi.com/$dir/images/"
-  
-  # Get the most recent directory (assuming ordering with tail -1)
-  recentdir=$(curl -s "$baseurl" | grep raspios | tail -1 | awk -F '>' '{print $7}' | sed 's/.\{3\}$//')
-  fullurl="${baseurl}${recentdir}"
-  
-  # Get torrent filename from the full directory URL
-  filename=$(curl -s "$fullurl" | grep torrent | awk -F '>' '{print $6}' | cut -d "\"" -f 2)
-  base_filename="${filename%.torrent}"
-  url="${fullurl}${filename}"
 
-  # Check if the torrent is already active (compare without .torrent)
-  if echo "$active_torrents" | grep -q "$base_filename"; then
-    skipped_list+=("$filename")
+  if ! index_html=$(curl -fsSL "$baseurl"); then
+    failure_list+=("$dir (unable to read index)")
     continue
   fi
 
-  response=$(transmission-remote -a "$url" 2>&1)
+  recentdir=$(printf '%s\n' "$index_html" \
+    | grep -oE 'href="[^\"]+/"' \
+    | cut -d '"' -f2 \
+    | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-' \
+    | sort \
+    | tail -n 1)
 
-  if [[ $response == *"success"* ]]; then
-    success_list+=("$filename")
-    # Append the base filename to active torrents
-    active_torrents+=$'\n'"$base_filename"
-  else
-    failure_list+=("$filename")
+  if [[ -z "$recentdir" ]]; then
+    failure_list+=("$dir (no releases found)")
+    continue
   fi
 
-  # Add the torrent using transmission-remote
-  response=$(transmission-remote -a "$url" 2>&1)
+  fullurl="${baseurl}${recentdir}"
 
-  if [[ $response == *"success"* ]]; then
-    success_list+=("$filename")
-    # Update active_torrents so that later iterations know this torrent is already added
-    active_torrents+=$'\n'"$filename"
-  else
-    failure_list+=("$filename")
+  if ! release_html=$(curl -fsSL "$fullurl"); then
+    failure_list+=("$dir (unable to read release page)")
+    continue
   fi
+
+  filename=$(printf '%s\n' "$release_html" \
+    | grep -oE 'href="[^"]+\.torrent"' \
+    | head -n 1 \
+    | cut -d '"' -f2)
+
+  if [[ -z "$filename" ]]; then
+    failure_list+=("$dir (no torrent found)")
+    continue
+  fi
+
+  base_filename="${filename%.torrent}"
+
+  if [[ -n "${active_map[$base_filename]:-}" ]]; then
+    continue
+  fi
+
+  response=$(transmission-remote -a "${fullurl}${filename}" 2>&1)
+  if [[ "$response" == *"success"* ]]; then
+    success_list+=("$base_filename")
+    active_map["$base_filename"]=1
+  else
+    failure_list+=("$base_filename (Transmission error)")
+  fi
+
 done
 
-# After the loop, only send a notification if there are newly added torrents
-if [ ${#success_list[@]} -gt 0 ]; then
-  # Create the Pushover message
-  message="I found ${#success_list[@]} new torrents to add to Transmit!
+if (( ${#success_list[@]} )); then
+  printf -v message "Found %d new Raspberry Pi image torrent(s):\n" "${#success_list[@]}"
+  for name in "${success_list[@]}"; do
+    message+=$'- '
+    message+="$name"
+    message+=$'\n'
+  done
+  message+=$'\nThey have been added to Transmission.'
 
-  New torrent file names:
-  $(printf "  - %s\n" "${success_list[@]}")"
-
-  # Send notification to Pushover
-  curl -s \
-    -F "token=$app_token" \
-    -F "user=$user_key" \
-    -F "title=Torrent Update" \
-    -F "message=$message" \
-    "$api_url"
+  curl -s -X POST "$api_url" \
+    --form-string "token=$app_token" \
+    --form-string "user=$user_key" \
+    --form-string "title=New Raspberry Pi Images" \
+    --form-string "message=$message" \
+    >> "$log_file"
+  echo " - Torrent notification sent on: $(date)" >> "$log_file"
 fi
+
+if (( ${#failure_list[@]} )); then
+  printf 'Failed to process: %s\n' "${failure_list[*]}" >&2
+fi
+
+exit 0
