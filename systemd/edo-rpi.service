@@ -4,4 +4,4 @@ Description=Run Edo hourly rpi maintenance script
 [Service]
 Type=oneshot
 User=edo
-ExecStart=/home/edo/rpi/rpi.sh
+ExecStart=/home/edo/rpi/sh/rpi.sh
