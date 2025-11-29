@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly Edo rpi maintenance
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=edo-rpi.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,7 @@
+[Unit]
+Description=Daily Edo free space check
+
+[Service]
+Type=oneshot
+User=edo
+ExecStart=/home/edo/sh/free_space.sh

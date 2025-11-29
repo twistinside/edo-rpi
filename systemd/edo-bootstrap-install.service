@@ -1,0 +1,12 @@
+[Unit]
+Description=Reinstall Edo systemd units from the repository
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/edo/rpi
+ExecStart=/home/edo/rpi/sh/bootstrap-install.sh
+
+[Install]
+WantedBy=multi-user.target

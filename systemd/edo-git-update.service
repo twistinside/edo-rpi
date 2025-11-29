@@ -1,0 +1,12 @@
+[Unit]
+Description=Update Edo repository and apply systemd unit changes
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/edo/rpi
+ExecStart=/home/edo/rpi/sh/git-self-update.sh
+
+[Install]
+WantedBy=multi-user.target
