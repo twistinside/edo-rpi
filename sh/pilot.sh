@@ -8,8 +8,7 @@ source "$SCRIPT_DIR/common.sh"
 
 trap_errors
 load_pushover_config
-
-: "${OPENAI_API_KEY:?Environment variable OPENAI_API_KEY is required.}"
+load_openai_config
 
 if ! command -v jq >/dev/null 2>&1; then
   log_error "jq is required to run Pilot."
