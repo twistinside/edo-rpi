@@ -22,7 +22,7 @@ end_time=$(date +%s)
 upgrade_duration=$((end_time - start_time))
 log_info "apt-get upgrade completed in ${upgrade_duration}s."
 
-upgraded_packages=$(grep -oP 'Setting up \K[^ ]+' /tmp/apt_upgrade.log | wc -l)
+upgraded_packages=$(grep -cP 'Setting up \K[^ ]+' /tmp/apt_upgrade.log || true)
 
 if [ "$upgraded_packages" -eq 0 ]; then
     message="I just spent ${update_duration} seconds updating my package list and ${upgrade_duration} seconds upgrading nothing at all!"
