@@ -1,0 +1,7 @@
+[Unit]
+Description=Run Edo daily system update
+
+[Service]
+Type=oneshot
+User=edo
+ExecStart=/home/edo/sh/update.sh

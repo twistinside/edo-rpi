@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Edo system update
+
+[Timer]
+OnCalendar=*-*-* 01:00:00
+Persistent=true
+Unit=edo-update.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=Run Edo startup script after boot
+
+[Timer]
+OnBootSec=30
+Unit=edo-start-up.service
+
+[Install]
+WantedBy=timers.target
