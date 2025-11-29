@@ -4,4 +4,4 @@ Description=Weekly Edo reboot with notification
 [Service]
 Type=oneshot
 User=edo
-ExecStart=/home/edo/sh/reboot.sh
+ExecStart=/home/edo/rpi/sh/reboot.sh

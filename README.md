@@ -32,10 +32,10 @@ With the timer enabled, the Pi continually pulls the latest repo changes and re-
 
 The following timers mirror the previous crontab on the Pi:
 
-- `systemd/edo-start-up.timer`: runs `/home/edo/sh/start-up.sh` once after boot with a 30s delay (replaces `@reboot`).
-- `systemd/edo-rpi.timer`: runs `/home/edo/rpi/rpi.sh` hourly (replaces `0 * * * *`).
-- `systemd/edo-update.timer`: runs `/home/edo/sh/update.sh` daily at 01:00 (replaces `0 1 * * *`).
-- `systemd/edo-reboot.timer`: runs `/home/edo/sh/reboot.sh` Fridays at 02:00 (replaces `0 2 * * 5`).
-- `systemd/edo-free-space.timer`: runs `/home/edo/sh/free_space.sh` daily at 03:00 (replaces `0 3 * * *`).
+- `systemd/edo-start-up.timer`: runs `/home/edo/rpi/sh/start-up.sh` once after boot with a 30s delay (replaces `@reboot`).
+- `systemd/edo-rpi.timer`: runs `/home/edo/rpi/sh/rpi.sh` hourly (replaces `0 * * * *`).
+- `systemd/edo-update.timer`: runs `/home/edo/rpi/sh/update.sh` daily at 01:00 (replaces `0 1 * * *`).
+- `systemd/edo-reboot.timer`: runs `/home/edo/rpi/sh/reboot.sh` Fridays at 02:00 (replaces `0 2 * * 5`).
+- `systemd/edo-free-space.timer`: runs `/home/edo/rpi/sh/free_space.sh` daily at 03:00 (replaces `0 3 * * *`).
 
 All timers live in `systemd/` so they stay version-controlled and are picked up automatically by `sh/bootstrap-install.sh` and `sh/git-self-update.sh`.

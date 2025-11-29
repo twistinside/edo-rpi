@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=oneshot
 User=edo
-ExecStart=/bin/bash -lc "/bin/sleep 30; /home/edo/sh/start-up.sh"
+ExecStart=/bin/bash -lc "/bin/sleep 30; /home/edo/rpi/sh/start-up.sh"
 
 [Install]
 WantedBy=multi-user.target
