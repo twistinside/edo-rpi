@@ -23,6 +23,11 @@ Edo is a Raspberry Pi that lives in a closet and hosts Raspbian torrents. These 
 
 With the timer enabled, the Pi continually pulls the latest repo changes and re-applies any updated systemd units without further SSH access.
 
+## Pilot log review configuration
+
+- Pushover credentials are loaded from `$HOME/.pushover/config` (or the `CONFIG_FILE` override) and must provide `EDO_ACCESS_TOKEN` and `USER_KEY`.
+- Pilot will source `$HOME/.openai/config` (or `OPENAI_CONFIG`) to populate `OPENAI_API_KEY` if it is not already set in the environment. The config file must define `OPENAI_API_KEY`.
+
 ## Replacing legacy cron jobs
 
 The following timers mirror the previous crontab on the Pi:

@@ -6,6 +6,7 @@ set -euo pipefail
 PUSHOVER_API_URL=${PUSHOVER_API_URL:-"https://api.pushover.net/1/messages.json"}
 CONFIG_FILE=${CONFIG_FILE:-"$HOME/.pushover/config"}
 LOG_FILE=${LOG_FILE:-"$HOME/.pushover/api.log"}
+OPENAI_CONFIG=${OPENAI_CONFIG:-"$HOME/.openai/config"}
 
 ensure_log_file() {
   mkdir -p "$(dirname "$LOG_FILE")"
@@ -66,4 +67,23 @@ send_pushover() {
 
   log_info "Pushover message sent (${title:-no title})."
   echo "$response" >> "$LOG_FILE"
+}
+
+load_openai_config() {
+  if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    return
+  fi
+
+  if [[ -f "$OPENAI_CONFIG" ]]; then
+    # shellcheck source=/dev/null
+    source "$OPENAI_CONFIG"
+  else
+    log_error "OpenAI config not found at $OPENAI_CONFIG and OPENAI_API_KEY is not set."
+    exit 1
+  fi
+
+  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+    log_error "OPENAI_API_KEY is missing from $OPENAI_CONFIG."
+    exit 1
+  fi
 }
