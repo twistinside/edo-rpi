@@ -1,13 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# Load Pushover config
-source "$HOME/.pushover/config"
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/common.sh"
 
-api_url="https://api.pushover.net/1/messages.json"
-app_token="$EDO_ACCESS_TOKEN"
-user_key="$USER_KEY"
-log_file="$HOME/.pushover/api.log"
+trap_errors
+load_pushover_config
 
 directories=(
   "raspios_arm64" "raspios_armhf" "raspios_full_arm64" "raspios_full_armhf"
@@ -17,6 +15,7 @@ directories=(
   "raspios_oldstable_lite_armhf"
 )
 
+log_info "Querying Transmission for active torrents."
 if ! mapfile -t active_torrents < <(
   transmission-remote -l \
     | tail -n +2 \
@@ -25,7 +24,7 @@ if ! mapfile -t active_torrents < <(
     | sed 's/  */ /g' \
     | cut -d' ' -f9-
 ); then
-  echo "Unable to query Transmission for active torrents." >&2
+  log_error "Unable to query Transmission for active torrents."
   exit 1
 fi
 
@@ -99,17 +98,13 @@ if (( ${#success_list[@]} )); then
   done
   message+=$'\nThey have been added to Transmission.'
 
-  curl -s -X POST "$api_url" \
-    --form-string "token=$app_token" \
-    --form-string "user=$user_key" \
-    --form-string "title=New Raspberry Pi Images" \
-    --form-string "message=$message" \
-    >> "$log_file"
-  echo " - Torrent notification sent on: $(date)" >> "$log_file"
+  send_pushover "$message" "New Raspberry Pi Images"
+  log_info "Torrent notification sent for ${#success_list[@]} images."
 fi
 
 if (( ${#failure_list[@]} )); then
   printf 'Failed to process: %s\n' "${failure_list[*]}" >&2
+  log_error "Failed to process: ${failure_list[*]}"
 fi
 
 exit 0
