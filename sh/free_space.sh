@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Load Pushover config
 source "$HOME/.pushover/config"
 
@@ -10,21 +12,17 @@ pushover_api_url="https://api.pushover.net/1/messages.json"
 app_token="$EDO_ACCESS_TOKEN"
 user_key="$USER_KEY"
 
-# Function to get disk stats
-get_disk_stats() {
-    local mount_point="$1"
-    df -h "$mount_point" | awk 'NR==2 { gsub("%", "", $5); print $5, $4 }'
-}
+# Build a summary for all non-ephemeral filesystems
+mapfile -t disk_rows < <(df -h --output=target,pcent,avail -x tmpfs -x devtmpfs | awk 'NR>1')
 
-# Get stats for root and SSD
-read sd_percent_used sd_free_space <<< "$(get_disk_stats "/")"
-read ssd_percent_used ssd_free_space <<< "$(get_disk_stats "/mnt/ssd")"
+message_lines=("Storage check complete:")
+for row in "${disk_rows[@]}"; do
+    read -r mount_point percent_used space_available <<< "$row"
+    percent_used_no_pct="${percent_used%%%}"  # strip trailing %
+    message_lines+=("${mount_point}: ${space_available} free (${percent_used_no_pct}% used)")
+done
 
-# Compose message
-# Use real newlines for formatting
-message="Storage check complete.
-SD card: ${sd_percent_used}% full, ${sd_free_space} free.
-HDD: ${ssd_percent_used}% full, ${ssd_free_space} free."
+message=$(printf "%s\n" "${message_lines[@]}")
 
 # Send to Pushover
 curl -s -X POST "$pushover_api_url" \
@@ -36,4 +34,3 @@ curl -s -X POST "$pushover_api_url" \
 
 # Log the timestamp
 echo " - Pushover alert sent on: $(date)" >> "$HOME/.pushover/api.log"
-
