@@ -2,17 +2,13 @@
 
 set -euo pipefail
 
-# Load Pushover config
-source "$HOME/.pushover/config"
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/common.sh"
 
-# API URL for Pushover
-pushover_api_url="https://api.pushover.net/1/messages.json"
+trap_errors
+load_pushover_config
 
-# Application key and user key
-app_token="$EDO_ACCESS_TOKEN"
-user_key="$USER_KEY"
-
-# Build a summary for all non-ephemeral filesystems
+log_info "Checking filesystem utilization."
 mapfile -t disk_rows < <(df -h --output=target,pcent,avail -x tmpfs -x devtmpfs | awk 'NR>1')
 
 message_lines=("Storage check complete:")
@@ -24,13 +20,5 @@ done
 
 message=$(printf "%s\n" "${message_lines[@]}")
 
-# Send to Pushover
-curl -s -X POST "$pushover_api_url" \
-    --form-string "token=$app_token" \
-    --form-string "user=$user_key" \
-    --form-string "message=$message" \
-    --form-string "title=Disk Status Update" \
-    >> "$HOME/.pushover/api.log"
-
-# Log the timestamp
-echo " - Pushover alert sent on: $(date)" >> "$HOME/.pushover/api.log"
+send_pushover "$message" "Disk Status Update"
+log_info "Disk status notification sent."

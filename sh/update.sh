@@ -1,43 +1,37 @@
 #!/bin/bash
 
-# Load Pushover config
-source ~/.pushover/config
+set -euo pipefail
 
-# API URL for Pushover
-api_url="https://api.pushover.net/1/messages.json"
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/common.sh"
 
-# Application key and user key (from config file)
-app_token="$EDO_ACCESS_TOKEN"
-user_key="$USER_KEY"
+trap_errors
+load_pushover_config
 
-# Run apt-get update and measure time
+log_info "Starting package list update."
 start_time=$(date +%s)
 sudo apt-get update
 end_time=$(date +%s)
 update_duration=$((end_time - start_time))
+log_info "apt-get update completed in ${update_duration}s."
 
-# Run apt-get upgrade, count packages, and measure time
+log_info "Starting package upgrade."
 start_time=$(date +%s)
 sudo apt-get upgrade -y | tee /tmp/apt_upgrade.log
 end_time=$(date +%s)
 upgrade_duration=$((end_time - start_time))
+log_info "apt-get upgrade completed in ${upgrade_duration}s."
 
-# Count upgraded packages
 upgraded_packages=$(grep -oP 'Setting up \K[^ ]+' /tmp/apt_upgrade.log | wc -l)
 
-# Prepare the message
 if [ "$upgraded_packages" -eq 0 ]; then
     message="I just spent ${update_duration} seconds updating my package list and ${upgrade_duration} seconds upgrading nothing at all!"
 else
     message="I'm fully upgraded! Updating my package list took ${update_duration} seconds. I upgraded ${upgraded_packages} packages in ${upgrade_duration} seconds. I'm better than ever!"
 fi
 
-# Post to Pushover using curl and log the output
-curl -s -X POST \
-    --form-string "token=$app_token" \
-    --form-string "user=$user_key" \
-    --form-string "message=$message" \
-    $api_url
+send_pushover "$message" "System Update"
+log_info "System update notification sent."
 
-# Clean up
 rm /tmp/apt_upgrade.log
+log_info "Temporary files cleaned up."
