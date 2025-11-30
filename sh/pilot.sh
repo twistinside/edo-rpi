@@ -106,7 +106,11 @@ call_openai() {
   fi
 
   local message
-  message=$(echo "$response" | jq -r '.output[0].content[0].text // empty')
+  message=$(echo "$response" | jq -r '
+    .output // []
+    | (map(select(.type == "message"))[0].content[0].text //
+       map(select(.type == "output_text"))[0].text // empty)
+  ')
 
   if [[ -z "$message" ]]; then
     message=$(echo "$response" | jq -r '.choices[0].message.content // empty')
