@@ -16,28 +16,30 @@ if [[ ! -d "$SYSTEMD_SRC" ]]; then
   exit 1
 fi
 
-mapfile -t unit_files < <(find "$SYSTEMD_SRC" -maxdepth 1 -type f \( -name '*.service' -o -name '*.timer' \))
-
-if [[ ${#unit_files[@]} -eq 0 ]]; then
-  log_error "No systemd unit files found in $SYSTEMD_SRC."
+if ! compgen -G "$SYSTEMD_SRC/*.service" > /dev/null; then
+  log_error "No systemd service files found in $SYSTEMD_SRC."
   exit 1
 fi
 
-for unit in "${unit_files[@]}"; do
-  unit_name=$(basename "$unit")
-  log_info "Installing $unit_name to /etc/systemd/system/."
-  sudo install -m 644 "$unit" "/etc/systemd/system/$unit_name"
-done
+if ! compgen -G "$SYSTEMD_SRC/*.timer" > /dev/null; then
+  log_error "No systemd timer files found in $SYSTEMD_SRC."
+  exit 1
+fi
+
+pushd "$SYSTEMD_SRC" > /dev/null
+
+log_info "Copying service units into /etc/systemd/system/."
+sudo cp *.service /etc/systemd/system/
+
+log_info "Copying timer units into /etc/systemd/system/."
+sudo cp *.timer /etc/systemd/system/
 
 log_info "Reloading systemd units."
 sudo systemctl daemon-reload
 
-for timer in "${unit_files[@]}"; do
-  if [[ "$timer" == *.timer ]]; then
-    timer_name=$(basename "$timer")
-    log_info "Enabling and starting $timer_name."
-    sudo systemctl enable --now "$timer_name"
-  fi
-done
+log_info "Enabling and starting timers."
+sudo systemctl enable --now *.timer
+
+popd > /dev/null
 
 log_info "Systemd unit installation complete."
