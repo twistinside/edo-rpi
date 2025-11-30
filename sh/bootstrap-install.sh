@@ -38,6 +38,6 @@ for timer in "${unit_files[@]}"; do
     log_info "Enabling and starting $timer_name."
     sudo systemctl enable --now "$timer_name"
   fi
-fi
+done
 
 log_info "Systemd unit installation complete."
