@@ -95,7 +95,7 @@ call_openai() {
 
   local payload
   payload=$(jq -n --arg model "$OPENAI_MODEL" --arg system "$prompt" --arg user "$content" \
-    '{model: $model, input: [{role: "system", content: $system}, {role: "user", content: $user}], max_output_tokens: 350, response_format: {type: "text"}}')
+    '{model: $model, input: [{role: "system", content: $system}, {role: "user", content: $user}], max_output_tokens: 350, text: {format: "plain"}}')
 
   local response
   if ! response=$(curl -sS "https://api.openai.com/v1/responses" \
