@@ -48,7 +48,8 @@ for dir in "${directories[@]}"; do
     printf '%s\n' "$index_html" \
       | grep -oE 'href="[^\"]+/"' \
       | cut -d '"' -f2 \
-      | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-' \
+      | grep -E '[0-9]{4}-[0-9]{2}-[0-9]{2}' \
+      | grep -vE '^\?' \
       | sort \
       | tail -n 1;
   } || true)
