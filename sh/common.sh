@@ -3,6 +3,10 @@
 
 set -euo pipefail
 
+# Default HOME is not guaranteed when run under systemd units that clear the
+# environment. Fall back to the Edo user path to keep config/log paths stable.
+HOME=${HOME:-/home/edo}
+
 PUSHOVER_API_URL=${PUSHOVER_API_URL:-"https://api.pushover.net/1/messages.json"}
 CONFIG_FILE=${CONFIG_FILE:-"$HOME/.pushover/config"}
 LOG_FILE=${LOG_FILE:-"$HOME/.pushover/api.log"}
