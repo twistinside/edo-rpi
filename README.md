@@ -39,3 +39,7 @@ The following timers mirror the previous crontab on the Pi:
 - `systemd/edo-free-space.timer`: runs `/home/edo/rpi/sh/free_space.sh` daily at 03:00 (replaces `0 3 * * *`).
 
 All timers live in `systemd/` so they stay version-controlled and are picked up automatically by `sh/bootstrap-install.sh` and `sh/git-self-update.sh`.
+
+## GL driver test cleanup
+
+`sh/start-up.sh` disables the stock `gldriver-test.service`/`.timer` pair if they exist. The default service references `/usr/share/X11/xorg.conf.d/99-fbturbo.conf`, which is absent on headless builds and produces recurring failures in `journalctl -u gldriver-test`.
