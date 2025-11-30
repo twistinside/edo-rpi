@@ -36,8 +36,14 @@ collect_health() {
   health+=("$(df -h / | tr -cd '\11\12\15\40-\176')")
 
   if [[ -f /var/log/auth.log ]]; then
-    health+=("Recent failed SSH attempts (last 20):")
-    health+=("$(grep -i "Failed password" /var/log/auth.log | tail -n 20 | tr -cd '\11\12\15\40-\176')")
+    if [[ -r /var/log/auth.log ]]; then
+      local failed_attempts
+      failed_attempts=$(grep -i "Failed password" /var/log/auth.log | tail -n 20 | tr -cd '\11\12\15\40-\176' || true)
+      health+=("Recent failed SSH attempts (last 20):")
+      health+=("${failed_attempts:-none found}")
+    else
+      health+=("Recent failed SSH attempts: auth.log not readable (permission denied)")
+    fi
   else
     health+=("Recent failed SSH attempts: auth.log not found")
   fi
@@ -57,8 +63,12 @@ collect_logs() {
 
   for file in $LOG_FILES; do
     if [[ -f "$file" ]]; then
-      collected+=("=== $file (last ${TAIL_LINES} lines) ===")
-      collected+=("$(tail -n "$TAIL_LINES" "$file" | tr -cd '\11\12\15\40-\176')")
+      if [[ -r "$file" ]]; then
+        collected+=("=== $file (last ${TAIL_LINES} lines) ===")
+        collected+=("$(tail -n "$TAIL_LINES" "$file" | tr -cd '\11\12\15\40-\176' || true)")
+      else
+        collected+=("=== $file not readable (permission denied) ===")
+      fi
     else
       collected+=("=== $file not found ===")
     fi
@@ -85,10 +95,10 @@ call_openai() {
 
   local payload
   payload=$(jq -n --arg model "$OPENAI_MODEL" --arg system "$prompt" --arg user "$content" \
-    '{model: $model, messages: [{role: "system", content: $system}, {role: "user", content: $user}], max_tokens: 350}')
+    '{model: $model, input: [{role: "system", content: $system}, {role: "user", content: $user}], max_output_tokens: 350, response_format: {type: "text"}}')
 
   local response
-  if ! response=$(curl -sS "https://api.openai.com/v1/chat/completions" \
+  if ! response=$(curl -sS "https://api.openai.com/v1/responses" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ${OPENAI_API_KEY}" \
     -d "$payload"); then
@@ -96,7 +106,11 @@ call_openai() {
   fi
 
   local message
-  message=$(echo "$response" | jq -r '.choices[0].message.content // empty')
+  message=$(echo "$response" | jq -r '.output[0].content[0].text // empty')
+
+  if [[ -z "$message" ]]; then
+    message=$(echo "$response" | jq -r '.choices[0].message.content // empty')
+  fi
 
   if [[ -z "$message" ]]; then
     log_error "OpenAI returned an empty response."
