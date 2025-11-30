@@ -44,12 +44,14 @@ for dir in "${directories[@]}"; do
     continue
   fi
 
-  recentdir=$(printf '%s\n' "$index_html" \
-    | grep -oE 'href="[^\"]+/"' \
-    | cut -d '"' -f2 \
-    | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-' \
-    | sort \
-    | tail -n 1)
+  recentdir=$({
+    printf '%s\n' "$index_html" \
+      | grep -oE 'href="[^\"]+/"' \
+      | cut -d '"' -f2 \
+      | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-' \
+      | sort \
+      | tail -n 1;
+  } || true)
 
   if [[ -z "$recentdir" ]]; then
     failure_list+=("$dir (no releases found)")
@@ -63,10 +65,12 @@ for dir in "${directories[@]}"; do
     continue
   fi
 
-  filename=$(printf '%s\n' "$release_html" \
-    | grep -oE 'href="[^"]+\.torrent"' \
-    | head -n 1 \
-    | cut -d '"' -f2)
+  filename=$({
+    printf '%s\n' "$release_html" \
+      | grep -oE 'href="[^"]+\.torrent"' \
+      | head -n 1 \
+      | cut -d '"' -f2;
+  } || true)
 
   if [[ -z "$filename" ]]; then
     failure_list+=("$dir (no torrent found)")
