@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Edo Pilot log review (17:00)
+
+[Timer]
+OnCalendar=*-*-* 17:00:00
+Persistent=true
+Unit=edo-pilot.service
+
+[Install]
+WantedBy=timers.target

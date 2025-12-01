@@ -11,11 +11,12 @@ Edo is a Raspberry Pi that lives in a closet and hosts Raspbian torrents. These 
 
 ## Automated updates
 
-- `systemd/edo-git-update.timer` triggers `systemd/edo-git-update.service` every 30 minutes (and shortly after boot).
+- `systemd/edo-git-update.timer` triggers `systemd/edo-git-update.service` daily at 17:30 (and shortly after boot).
 - The service runs `sh/git-self-update.sh`, which:
   1. Runs `git pull` in `/home/edo/rpi`.
   2. Checks for changes under `systemd/` between the previous and current HEAD.
   3. Re-runs `sh/bootstrap-install.sh` automatically if systemd units changed.
+  4. Sends a Pushover notification describing whether the repo updated or was already current (and reports failures).
 
 - `systemd/edo-bootstrap-install.timer` runs `sh/bootstrap-install.sh` every hour (and shortly after boot) to forcibly re-copy
   all versioned systemd units into `/etc/systemd/system/` and reload systemd. This keeps systemd in sync even if new timers
@@ -27,6 +28,7 @@ With the timer enabled, the Pi continually pulls the latest repo changes and re-
 
 - Pushover credentials are loaded from `$HOME/.pushover/config` (or the `CONFIG_FILE` override) and must provide `EDO_ACCESS_TOKEN` and `USER_KEY`.
 - Pilot will source `$HOME/.openai/config` (or `OPENAI_CONFIG`) to populate `OPENAI_API_KEY` if it is not already set in the environment. The config file must define `OPENAI_API_KEY`.
+- `systemd/edo-pilot.timer` runs `/home/edo/rpi/sh/pilot.sh` daily at 17:00 and persists missed runs.
 
 ## Replacing legacy cron jobs
 
