@@ -3,7 +3,7 @@ Description=Regularly update Edo repository and systemd units
 
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=30min
+OnCalendar=*-*-* 17:30:00
 Persistent=true
 
 [Install]

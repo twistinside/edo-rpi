@@ -7,7 +7,19 @@ REPO_DIR=${REPO_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}
 SYSTEMD_DIR="$REPO_DIR/systemd"
 
 source "$SCRIPT_DIR/common.sh"
-trap_errors
+load_pushover_config
+
+notify_error() {
+  local exit_code=$?
+  local line=${1:-unknown}
+
+  log_error "Script ${0##*/} failed at line ${line}."
+  send_pushover "Git self-update failed at line ${line}. See $LOG_FILE for details." \
+    "Edo Pi git update failed"
+  exit "$exit_code"
+}
+
+trap 'notify_error ${LINENO}' ERR
 
 log_info "Starting git self-update for $REPO_DIR."
 
@@ -26,6 +38,7 @@ current_ref=$(git rev-parse HEAD)
 
 if [[ "$previous_ref" == "$current_ref" ]]; then
   log_info "Repository already up to date."
+  send_pushover "Repository already up to date at ${current_ref:0:12}." "Edo Pi git update"
   exit 0
 fi
 
@@ -38,3 +51,4 @@ else
 fi
 
 log_info "Git self-update complete."
+send_pushover "Repository updated from ${previous_ref:0:12} to ${current_ref:0:12}." "Edo Pi git update"

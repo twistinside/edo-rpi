@@ -1,0 +1,6 @@
+[Unit]
+Description=Run Edo Pilot log review
+
+[Service]
+Type=oneshot
+ExecStart=/home/edo/rpi/sh/pilot.sh
